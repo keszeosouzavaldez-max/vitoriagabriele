@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vitória Gabriele · Tarot</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;500;600&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'EB Garamond',Georgia,serif;
+  background:#18080A;
+  color:#FDF0DC;
+  overflow-x:hidden;
+  cursor:none;
+}
+:root{
+  --sun:#F5C842;
+  --sun-lt:#FAE08A;
+  --sun-dk:#C49A10;
+  --amber:#E8924A;
+  --rose:#D4547A;
+  --rose-lt:#F0A0C0;
+  --cream:#FDF0DC;
+  --parch:#F5E6C0;
+  --bg:#18080A;
+  --bg2:#2A0E10;
+  --bg3:#3D1A08;
+  --border:rgba(245,200,66,.35);
+  --border-faint:rgba(245,200,66,.1);
+}
+
+/* ── CANVAS ── */
+#canvas-bg{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* ── CURSOR ── */
+#cur-halo{
+  position:fixed;z-index:9999;pointer-events:none;
+  width:320px;height:320px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,210,80,.1) 0%,rgba(232,146,74,.04) 40%,transparent 68%);
+  transform:translate(-50%,-50%);mix-blend-mode:screen;
+}
+#cur-dot{
+  position:fixed;z-index:10000;pointer-events:none;
+  width:6px;height:6px;border-radius:50%;
+  background:var(--sun);box-shadow:0 0 8px var(--sun),0 0 18px var(--amber);
+  transform:translate(-50%,-50%);transition:transform .2s;
+}
+.spk{position:fixed;pointer-events:none;z-index:9998;animation:spk .95s ease-out forwards;}
+@keyframes spk{0%{opacity:1;transform:translateY(0) scale(1) rotate(0);}100%{opacity:0;transform:translateY(-60px) scale(.1) rotate(200deg);}}
+
+/* ═══════════════════════════════════
+   MOLDURA DE CARTA — envolve TUDO
+═══════════════════════════════════ */
+.card-universe{
+  position:relative;z-index:1;
+  max-width:960px;
+  margin:0 auto;
+  padding:28px;          /* espaço fora da borda */
+}
+
+/* Borda externa dupla (carta física) */
+.card-shell{
+  position:relative;
+  border:2px solid var(--border);
+  border-radius:18px;
+  background:linear-gradient(175deg,#200C06 0%,#180808 40%,#1E0C10 100%);
+  box-shadow:
+    0 0 0 1px rgba(245,200,66,.08),
+    0 0 0 8px rgba(245,200,66,.04),
+    0 0 80px rgba(232,146,74,.08),
+    0 40px 120px rgba(0,0,0,.8);
+  overflow:hidden;
+}
+
+/* Borda interna */
+.card-shell::before{
+  content:'';position:absolute;inset:10px;
+  border:1px solid rgba(245,200,66,.14);
+  border-radius:10px;pointer-events:none;z-index:0;
+}
+
+/* Cantos ornamentais */
+.corner{
+  position:absolute;width:72px;height:72px;pointer-events:none;z-index:10;
+}
+.corner svg{width:100%;height:100%;}
+.corner.tl{top:6px;left:6px;}
+.corner.tr{top:6px;right:6px;transform:scaleX(-1);}
+.corner.bl{bottom:6px;left:6px;transform:scaleY(-1);}
+.corner.br{bottom:6px;right:6px;transform:scale(-1);}
+
+/* ── Separador horizontal entre seções ── */
+.h-sep{
+  position:relative;
+  display:flex;align-items:center;gap:0;
+  padding:0 28px;margin:0;z-index:2;
+}
+.h-sep .line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);}
+.h-sep .gem{
+  font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.2em;
+  color:var(--sun);padding:0 14px;white-space:nowrap;opacity:.7;
+}
+.h-sep-double{
+  display:flex;flex-direction:column;gap:5px;
+  padding:0 40px;z-index:2;
+}
+.h-sep-double .pair{display:flex;align-items:center;gap:0;}
+.h-sep-double .pair .line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);}
+.h-sep-double .pair .ctr{width:60px;height:1px;background:var(--border);}
+
+/* Faixas verticais laterais — como moldura de carta */
+.card-side-left,.card-side-right{
+  position:absolute;top:0;bottom:0;width:36px;
+  display:flex;align-items:center;justify-content:center;
+  z-index:3;pointer-events:none;
+}
+.card-side-left{left:0;border-right:1px solid var(--border-faint);}
+.card-side-right{right:0;border-left:1px solid var(--border-faint);}
+.side-text{
+  font-family:'Cinzel',serif;font-size:.5rem;letter-spacing:.25em;
+  color:rgba(245,200,66,.25);text-transform:uppercase;
+  writing-mode:vertical-rl;
+}
+
+/* ── CONTEÚDO CENTRAL ── */
+.card-content{
+  position:relative;z-index:2;
+  padding:0 52px; /* espaço para as faixas laterais */
+}
+
+/* ════════════════════════
+   TOPO DA CARTA
+════════════════════════ */
+.card-top{
+  padding:36px 20px 28px;
+  text-align:center;
+  position:relative;
+}
+.card-roman{
+  font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.6em;
+  color:rgba(245,200,66,.5);margin-bottom:8px;display:block;
+}
+/* Título principal — O EREMITA style */
+.card-name-band{
+  background:linear-gradient(180deg,rgba(245,200,66,.12) 0%,transparent 100%);
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  padding:10px 0;
+  margin-bottom:24px;
+}
+.card-main-title{
+  font-family:'Cinzel Decorative',serif;
+  font-size:clamp(1.8rem,5.5vw,3.2rem);font-weight:900;
+  background:linear-gradient(135deg,var(--sun-lt) 0%,var(--sun) 40%,var(--amber) 70%,var(--rose-lt) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:.08em;
+  filter:drop-shadow(0 0 14px rgba(245,200,66,.2));
+  animation:shimmer 7s ease-in-out infinite;
+}
+@keyframes shimmer{50%{filter:drop-shadow(0 0 28px rgba(245,200,66,.55));}}
+.card-subtitle{
+  font-family:'Cinzel',serif;font-size:clamp(.6rem,1.5vw,.78rem);
+  letter-spacing:.32em;text-transform:uppercase;color:var(--rose-lt);
+  margin-top:4px;display:block;
+}
+
+/* ════════════════════════
+   ILUSTRAÇÃO CENTRAL — lanterna + eremita
+════════════════════════ */
+.illus-band{
+  position:relative;
+  background:linear-gradient(180deg,rgba(255,210,80,.04) 0%,rgba(232,146,74,.06) 50%,rgba(212,84,122,.04) 100%);
+  padding:40px 20px 32px;
+  display:flex;justify-content:center;align-items:center;
+  min-height:320px;
+  overflow:hidden;
+}
+/* Gradiente radiante atrás da ilustração */
+.illus-band::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(255,200,80,.08) 0%,transparent 70%);
+  pointer-events:none;
+}
+/* Estrelas decorativas na banda */
+.illus-star{
+  position:absolute;color:var(--sun);font-size:.9rem;opacity:.35;
+  animation:twinkle 3s ease-in-out infinite;
+}
+@keyframes twinkle{0%,100%{opacity:.2;}50%{opacity:.6;}}
+.is1{top:15%;left:12%;animation-delay:0s;}
+.is2{top:20%;right:14%;animation-delay:.8s;font-size:.7rem;}
+.is3{bottom:18%;left:18%;animation-delay:1.4s;font-size:.6rem;}
+.is4{bottom:22%;right:12%;animation-delay:.4s;}
+.is5{top:40%;left:6%;animation-delay:2s;font-size:.5rem;}
+.is6{top:35%;right:8%;animation-delay:1.8s;font-size:.5rem;}
+
+.illus-inner{
+  position:relative;display:flex;align-items:flex-end;gap:40px;
+  justify-content:center;
+}
+
+/* SVG LANTERNA */
+.lantern-svg{
+  width:110px;height:170px;flex-shrink:0;
+  filter:drop-shadow(0 0 24px rgba(255,210,80,.45));
+  animation:lsway 5s ease-in-out infinite;
+}
+@keyframes lsway{0%,100%{transform:rotate(-2.5deg) translateY(0);}50%{transform:rotate(2.5deg) translateY(-4px);}}
+
+/* SVG EREMITA */
+.eremita-svg{
+  width:140px;height:260px;flex-shrink:0;
+  opacity:.85;
+  filter:drop-shadow(0 0 16px rgba(245,200,66,.25));
+  animation:efloat 6.5s ease-in-out infinite;
+}
+@keyframes efloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+
+/* Halo de luz ao redor do conjunto */
+.lantern-halo{
+  position:absolute;top:20%;left:18%;
+  width:180px;height:180px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,210,80,.18) 0%,rgba(232,146,74,.06) 40%,transparent 70%);
+  animation:halopulse 2.8s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes halopulse{0%,100%{transform:scale(1);opacity:.7;}50%{transform:scale(1.2);opacity:1;}}
+
+/* ════════════════════════
+   BAND DE NOME (base da carta visual)
+════════════════════════ */
+.name-band{
+  border-top:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(245,200,66,.06),transparent);
+  padding:10px 20px 8px;text-align:center;
+}
+.name-band-text{
+  font-family:'Cinzel Decorative',serif;font-size:clamp(.7rem,2vw,.95rem);
+  letter-spacing:.22em;
+  background:linear-gradient(135deg,var(--sun-lt),var(--sun),var(--amber));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.name-band-sub{
+  font-family:'EB Garamond',serif;font-style:italic;
+  font-size:clamp(.62rem,1.5vw,.78rem);letter-spacing:.15em;
+  color:rgba(253,240,220,.45);display:block;margin-top:2px;
+}
+
+/* ════════════════════════
+   SEÇÕES INTERNAS
+════════════════════════ */
+.inner-sec{
+  padding:36px 28px;position:relative;
+}
+.inner-sec.center{text-align:center;}
+.sec-eye{
+  display:block;font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.45em;
+  color:var(--rose);text-transform:uppercase;margin-bottom:12px;
+}
+.sec-title{
+  font-family:'Cinzel Decorative',serif;
+  font-size:clamp(1.2rem,3.5vw,1.9rem);font-weight:700;
+  background:linear-gradient(135deg,var(--sun-lt),var(--sun),var(--amber));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:16px;
+}
+.sec-body{
+  font-size:clamp(.96rem,2vw,1.12rem);line-height:1.92;
+  color:rgba(253,240,220,.74);
+}
+
+/* ── CARDS INTERNOS (o que faço) ── */
+.what-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:16px;margin-top:28px;
+}
+.wc{
+  border:1px solid rgba(245,200,66,.16);border-radius:3px;
+  padding:22px 18px;
+  background:linear-gradient(155deg,rgba(42,14,16,.95),rgba(24,8,10,.98));
+  position:relative;overflow:hidden;
+  transition:transform .35s,border-color .35s,box-shadow .35s;
+}
+.wc::after{
+  content:'';position:absolute;inset:6px;
+  border:1px solid rgba(245,200,66,.05);pointer-events:none;
+}
+.wc-topline{
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--sun),transparent);
+  opacity:0;transition:opacity .35s;
+}
+.wc:hover{transform:translateY(-4px);border-color:rgba(245,200,66,.4);box-shadow:0 8px 28px rgba(0,0,0,.5),0 0 14px rgba(245,200,66,.1);}
+.wc:hover .wc-topline{opacity:1;}
+.wc-icon{font-size:1.9rem;margin-bottom:12px;display:block;filter:drop-shadow(0 0 7px rgba(245,200,66,.4));}
+.wc-title{font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--sun-lt);margin-bottom:7px;}
+.wc-body{font-style:italic;font-size:.88rem;color:rgba(253,240,220,.6);line-height:1.7;}
+
+/* ── STEPS ── */
+.steps{margin-top:28px;}
+.step{
+  display:grid;grid-template-columns:52px 1fr;gap:0 18px;
+  align-items:start;padding:18px 0;
+  border-bottom:1px solid rgba(245,200,66,.07);
+}
+.step:last-child{border-bottom:none;}
+.step-bub{
+  width:52px;height:52px;border-radius:50%;
+  border:1.5px solid rgba(245,200,66,.38);
+  background:rgba(42,14,16,.9);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;flex-shrink:0;
+  box-shadow:0 0 12px rgba(245,200,66,.12);
+}
+.step h3{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--sun-lt);margin-bottom:5px;margin-top:12px;}
+.step p{font-style:italic;font-size:.9rem;color:rgba(253,240,220,.64);line-height:1.7;}
+
+/* ── PREÇOS ── */
+.price-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));
+  gap:16px;margin-top:28px;
+}
+.pc{
+  border:1px solid rgba(245,200,66,.16);border-radius:3px;
+  padding:24px 20px;
+  background:linear-gradient(155deg,rgba(42,14,16,.95),rgba(24,8,10,.98));
+  position:relative;overflow:hidden;
+  transition:transform .35s,border-color .35s,box-shadow .35s;
+}
+.pc::after{content:'';position:absolute;inset:6px;border:1px solid rgba(245,200,66,.04);pointer-events:none;}
+.pc-topline{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--amber),transparent);opacity:0;transition:opacity .35s;}
+.pc.feat{border-color:rgba(245,200,66,.35);background:linear-gradient(155deg,rgba(55,18,12,.98),rgba(38,12,8,1));}
+.pc:hover{transform:translateY(-4px);border-color:rgba(245,200,66,.45);box-shadow:0 8px 28px rgba(0,0,0,.5),0 0 14px rgba(245,200,66,.1);}
+.pc:hover .pc-topline{opacity:1;}
+.pc-badge{position:absolute;top:10px;right:10px;font-family:'Cinzel',serif;font-size:.48rem;letter-spacing:.18em;text-transform:uppercase;color:var(--bg);background:linear-gradient(135deg,var(--sun-lt),var(--sun));padding:3px 9px;border-radius:20px;}
+.pc-icon{font-size:1.9rem;margin-bottom:11px;display:block;filter:drop-shadow(0 0 6px rgba(245,200,66,.38));}
+.pc-name{font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--rose-lt);margin-bottom:7px;}
+.pc-desc{font-style:italic;font-size:.86rem;color:rgba(253,240,220,.56);line-height:1.62;margin-bottom:16px;}
+.pc-price{
+  font-family:'Cinzel Decorative',serif;font-size:2rem;font-weight:700;
+  background:linear-gradient(135deg,var(--sun-lt),var(--sun),var(--amber));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.pc-price sup{font-family:'Cinzel',serif;font-size:.9rem;font-weight:400;}
+
+/* ── CARTA FLIP ── */
+.flip-wrap{display:flex;flex-direction:column;align-items:center;padding:36px 20px 28px;}
+.tarot-3d{width:190px;height:328px;perspective:1100px;cursor:pointer;margin-bottom:14px;}
+.tarot-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.4,0,.2,1);}
+.tarot-3d:hover .tarot-inner,.tarot-3d.flipped .tarot-inner{transform:rotateY(180deg);}
+.tf,.tb{
+  position:absolute;inset:0;backface-visibility:hidden;border-radius:8px;overflow:hidden;
+  box-shadow:0 0 0 2px var(--sun-dk),0 0 0 5px rgba(245,200,66,.12),0 14px 44px rgba(0,0,0,.7);
+}
+.tf{
+  background:linear-gradient(165deg,#F5C842 0%,#E8924A 38%,#D4547A 72%,#8A2040 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  padding:14px 12px;
+}
+.tf-border{position:absolute;inset:7px;border:1px solid rgba(255,240,180,.3);border-radius:4px;pointer-events:none;}
+.tf-top{font-family:'Cinzel',serif;font-size:.82rem;letter-spacing:.2em;color:rgba(253,240,220,.9);z-index:1;}
+.tf-illo{font-size:3.5rem;z-index:1;filter:drop-shadow(0 0 14px rgba(255,240,180,.8));animation:lglow 2.5s ease-in-out infinite;}
+@keyframes lglow{0%,100%{text-shadow:0 0 10px rgba(255,220,80,.5);}50%{text-shadow:0 0 22px rgba(255,220,80,1),0 0 40px rgba(232,146,74,.5);}}
+.tf-name{font-family:'Cinzel Decorative',serif;font-size:1rem;color:var(--cream);z-index:1;text-align:center;}
+.tf-sub{font-style:italic;font-size:.66rem;color:rgba(253,240,220,.65);z-index:1;letter-spacing:.1em;}
+.tb{
+  transform:rotateY(180deg);
+  background:linear-gradient(160deg,var(--bg2),#3D1808,var(--bg2));
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;padding:24px 18px;text-align:center;
+}
+.tb::before{content:'';position:absolute;inset:8px;border:1px solid rgba(245,200,66,.15);border-radius:4px;pointer-events:none;}
+.tb p{font-style:italic;font-size:.92rem;color:var(--sun-lt);line-height:1.8;opacity:.9;z-index:1;}
+.tb .ts{font-size:1.4rem;color:var(--sun);z-index:1;}
+.flip-hint{font-family:'Cinzel',serif;font-size:.56rem;letter-spacing:.3em;color:rgba(245,200,66,.35);text-transform:uppercase;}
+
+/* ── RODAPÉ DA CARTA — CTA + REDES ── */
+.card-foot{
+  padding:38px 28px 44px;text-align:center;position:relative;
+}
+.card-foot::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 70% 60% at 50% 40%,rgba(232,146,74,.08) 0%,transparent 70%);
+}
+.foot-icon{font-size:2.8rem;display:block;margin-bottom:16px;animation:lglow 3s ease-in-out infinite;filter:drop-shadow(0 0 14px rgba(245,200,66,.4));}
+.foot-title{
+  font-family:'Cinzel Decorative',serif;
+  font-size:clamp(1.2rem,3.5vw,2rem);
+  background:linear-gradient(135deg,var(--sun-lt),var(--sun),var(--amber));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:10px;
+}
+.foot-lead{font-style:italic;font-size:1rem;color:rgba(253,240,220,.65);margin-bottom:10px;line-height:1.8;}
+.foot-insta-cta{
+  font-family:'Cinzel',serif;font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--sun-lt);opacity:.75;margin-bottom:32px;display:block;
+}
+
+/* ── BOTÕES REDES ── */
+.social-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.btn-ig{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:15px 38px;
+  font-family:'Cinzel',serif;font-size:.78rem;letter-spacing:.2em;text-transform:uppercase;
+  text-decoration:none;color:var(--cream);
+  background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);
+  border:1px solid rgba(253,104,67,.4);border-radius:3px;
+  box-shadow:0 4px 22px rgba(130,58,180,.3);
+  position:relative;overflow:hidden;transition:transform .3s,box-shadow .3s;
+}
+.btn-ig::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(255,255,255,.14),transparent);transform:translateX(-100%);transition:transform .5s;}
+.btn-ig:hover::before{transform:translateX(100%);}
+.btn-ig:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(130,58,180,.45);}
+.btn-ig svg{width:18px;height:18px;fill:currentColor;flex-shrink:0;}
+
+.btn-tt{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:15px 28px;
+  font-family:'Cinzel',serif;font-size:.78rem;letter-spacing:.2em;text-transform:uppercase;
+  text-decoration:none;color:var(--rose-lt);
+  background:rgba(42,14,16,.8);
+  border:1px solid rgba(212,84,122,.28);border-radius:3px;
+  transition:transform .3s,border-color .3s,box-shadow .3s;
+}
+.btn-tt svg{width:17px;height:17px;fill:currentColor;flex-shrink:0;}
+.btn-tt:hover{transform:translateY(-2px);border-color:var(--rose);box-shadow:0 6px 20px rgba(212,84,122,.2);}
+
+.foot-note{margin-top:28px;font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.3em;color:rgba(245,200,66,.3);text-transform:uppercase;}
+
+/* ═══════ REVEAL ═══════ */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease;}
+.rv.in{opacity:1;transform:translateY(0);}
+
+/* ═══════ SCROLL HINT (fora do card) ═══════ */
+.scroll-hint{
+  position:absolute;bottom:22px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  opacity:.35;animation:sbounce 2.3s ease-in-out infinite;
+}
+.scroll-hint span{font-family:'Cinzel',serif;font-size:.5rem;letter-spacing:.3em;color:var(--sun);text-transform:uppercase;}
+.scroll-hint i{color:var(--sun);font-style:normal;}
+@keyframes sbounce{0%,100%{transform:translateX(-50%) translateY(0);}55%{transform:translateX(-50%) translateY(7px);}}
+
+/* ═══════ RESPONSIVE ═══════ */
+@media(max-width:700px){
+  .card-universe{padding:12px;}
+  .card-content{padding:0 12px;}
+  .card-side-left,.card-side-right{display:none;}
+  .illus-inner{gap:16px;}
+  .eremita-svg{width:110px;height:200px;}
+  .lantern-svg{width:80px;height:130px;}
+  body{cursor:auto;}
+  #cur-halo,#cur-dot{display:none;}
+  .what-grid,.price-grid{grid-template-columns:1fr;}
+  .inner-sec{padding:28px 14px;}
+  .card-top{padding:28px 14px 20px;}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+
+<canvas id="canvas-bg"></canvas>
+<div id="cur-halo"></div>
+<div id="cur-dot"></div>
+
+<!-- ══════ A CARTA COMPLETA ══════ -->
+<div class="card-universe">
+<div class="card-shell">
+
+  <!-- Cantos ornamentais SVG -->
+  <div class="corner tl"><svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 68 L4 4 L68 4" stroke="rgba(245,200,66,.5)" stroke-width="2" fill="none"/>
+    <path d="M10 68 L10 10 L68 10" stroke="rgba(245,200,66,.15)" stroke-width="1" fill="none"/>
+    <circle cx="4" cy="4" r="4" fill="rgba(245,200,66,.6)"/>
+    <path d="M4 4 L22 22" stroke="rgba(245,200,66,.2)" stroke-width=".8"/>
+    <path d="M14 4 L4 14" stroke="rgba(245,200,66,.35)" stroke-width="1"/>
+    <path d="M24 4 L4 24" stroke="rgba(245,200,66,.18)" stroke-width=".7"/>
+    <circle cx="10" cy="10" r="2" fill="rgba(245,200,66,.3)"/>
+    <!-- pequena flor de 4 pétalas no canto -->
+    <circle cx="20" cy="4" r="2.5" fill="none" stroke="rgba(245,200,66,.4)" stroke-width=".8"/>
+    <circle cx="4" cy="20" r="2.5" fill="none" stroke="rgba(245,200,66,.4)" stroke-width=".8"/>
+  </svg></div>
+  <div class="corner tr"><svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 68 L4 4 L68 4" stroke="rgba(245,200,66,.5)" stroke-width="2" fill="none"/>
+    <path d="M10 68 L10 10 L68 10" stroke="rgba(245,200,66,.15)" stroke-width="1" fill="none"/>
+    <circle cx="4" cy="4" r="4" fill="rgba(245,200,66,.6)"/>
+    <path d="M14 4 L4 14" stroke="rgba(245,200,66,.35)" stroke-width="1"/>
+    <circle cx="10" cy="10" r="2" fill="rgba(245,200,66,.3)"/>
+    <circle cx="20" cy="4" r="2.5" fill="none" stroke="rgba(245,200,66,.4)" stroke-width=".8"/>
+    <circle cx="4" cy="20" r="2.5" fill="none" stroke="rgba(245,200,66,.4)" stroke-width=".8"/>
+  </svg></div>
+  <div class="corner bl"><svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 68 L4 4 L68 4" stroke="rgba(245,200,66,.5)" stroke-width="2" fill="none"/>
+    <path d="M10 68 L10 10 L68 10" stroke="rgba(245,200,66,.15)" stroke-width="1" fill="none"/>
+    <circle cx="4" cy="4" r="4" fill="rgba(245,200,66,.6)"/>
+    <path d="M14 4 L4 14" stroke="rgba(245,200,66,.35)" stroke-width="1"/>
+    <circle cx="10" cy="10" r="2" fill="rgba(245,200,66,.3)"/>
+    <circle cx="20" cy="4" r="2.5" fill="none" stroke="rgba(245,200,66,.4)" stroke-width=".8"/>
+    <circle cx="4" cy="20" r="2.5" fill="none" stroke="rgba(245,200,66,.4)" stroke-width=".8"/>
+  </svg></div>
+  <div class="corner br"><svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 68 L4 4 L68 4" stroke="rgba(245,200,66,.5)" stroke-width="2" fill="none"/>
+    <path d="M10 68 L10 10 L68 10" stroke="rgba(245,200,66,.15)" stroke-width="1" fill="none"/>
+    <circle cx="4" cy="4" r="4" fill="rgba(245,200,66,.6)"/>
+    <path d="M14 4 L4 14" stroke="rgba(245,200,66,.35)" stroke-width="1"/>
+    <circle cx="10" cy="10" r="2" fill="rgba(245,200,66,.3)"/>
+    <circle cx="20" cy="4" r="2.5" fill="none" stroke="rgba(245,200,66,.4)" stroke-width=".8"/>
+    <circle cx="4" cy="20" r="2.5" fill="none" stroke="rgba(245,200,66,.4)" stroke-width=".8"/>
+  </svg></div>
+
+  <!-- Faixas laterais -->
+  <div class="card-side-left"><span class="side-text">Taróloga · O Eremita IX · Vitória Gabriele</span></div>
+  <div class="card-side-right"><span class="side-text">The Hermit · IX · Tarot Consultas</span></div>
+
+  <!-- ══ CONTEÚDO ══ -->
+  <div class="card-content">
+
+    <!-- TOPO — número romano + título -->
+    <div class="card-top rv">
+      <span class="card-roman">· IX ·</span>
+      <div class="card-name-band">
+        <div class="card-main-title">Vitória Gabriele</div>
+        <span class="card-subtitle">Taróloga · Consultas de Tarot</span>
+      </div>
+      <p style="font-style:italic;font-size:clamp(.95rem,2.2vw,1.15rem);color:rgba(253,240,220,.72);line-height:1.88;max-width:540px;margin:0 auto;">
+        Trago a luz da lanterna para iluminar o que você ainda não consegue ver em si mesmo. As cartas revelam — você escolhe o caminho.
+      </p>
+    </div>
+
+    <!-- ═ SEP ═ -->
+    <div class="h-sep rv"><div class="line"></div><div class="gem">✦ O Eremita IX ✦</div><div class="line"></div></div>
+
+    <!-- ILUSTRAÇÃO CENTRAL -->
+    <div class="illus-band rv">
+      <span class="illus-star is1">✦</span>
+      <span class="illus-star is2">✧</span>
+      <span class="illus-star is3">★</span>
+      <span class="illus-star is4">✦</span>
+      <span class="illus-star is5">·</span>
+      <span class="illus-star is6">·</span>
+
+      <div class="illus-inner">
+        <!-- LANTERNA SVG -->
+        <svg class="lantern-svg" viewBox="0 0 110 170" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="fl" cx="50%" cy="55%" r="50%">
+              <stop offset="0%" stop-color="#FFE880"/>
+              <stop offset="40%" stop-color="#FFB030"/>
+              <stop offset="100%" stop-color="#FF6010" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="halo-r" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(255,220,80,.22)"/>
+              <stop offset="100%" stop-color="transparent"/>
+            </radialGradient>
+            <filter id="gf"><feGaussianBlur stdDeviation="3"/></filter>
+            <filter id="gf2"><feGaussianBlur stdDeviation="7"/></filter>
+          </defs>
+          <!-- halo -->
+          <ellipse cx="55" cy="102" rx="50" ry="58" fill="url(#halo-r)" filter="url(#gf2)" opacity=".85">
+            <animate attributeName="opacity" values=".5;1;.5" dur="2.6s" repeatCount="indefinite"/>
+          </ellipse>
+          <!-- corrente -->
+          <line x1="55" y1="0" x2="55" y2="24" stroke="#C49A10" stroke-width="2"/>
+          <circle cx="55" cy="26" r="3.5" fill="#C49A10" stroke="#FAE08A" stroke-width=".8"/>
+          <!-- chapéu -->
+          <polygon points="34,32 76,32 70,22 40,22" fill="#A87A08" stroke="#FAE08A" stroke-width=".8"/>
+          <rect x="50" y="16" width="10" height="7" rx="1.5" fill="#B8900A" stroke="#FAE08A" stroke-width=".6"/>
+          <!-- corpo -->
+          <rect x="30" y="32" width="50" height="80" rx="3" fill="#160804" stroke="#C49A10" stroke-width="1.4"/>
+          <!-- grades -->
+          <line x1="45" y1="32" x2="45" y2="112" stroke="#B8860A" stroke-width=".7" opacity=".4"/>
+          <line x1="55" y1="32" x2="55" y2="112" stroke="#B8860A" stroke-width=".7" opacity=".28"/>
+          <line x1="65" y1="32" x2="65" y2="112" stroke="#B8860A" stroke-width=".7" opacity=".4"/>
+          <line x1="30" y1="56" x2="80" y2="56" stroke="#B8860A" stroke-width=".6" opacity=".32"/>
+          <line x1="30" y1="78" x2="80" y2="78" stroke="#B8860A" stroke-width=".6" opacity=".32"/>
+          <line x1="30" y1="100" x2="80" y2="100" stroke="#B8860A" stroke-width=".6" opacity=".32"/>
+          <!-- chama -->
+          <ellipse cx="55" cy="76" rx="13" ry="18" fill="url(#fl)" opacity=".95">
+            <animate attributeName="ry" values="16;20;16" dur="1.7s" repeatCount="indefinite"/>
+            <animate attributeName="rx" values="11;15;11" dur="2.2s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values=".8;1;.8" dur="1.4s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse cx="55" cy="80" rx="6" ry="9" fill="#FFFDE0" opacity=".65" filter="url(#gf)">
+            <animate attributeName="opacity" values=".45;.85;.45" dur="1.5s" repeatCount="indefinite"/>
+          </ellipse>
+          <!-- borda do corpo -->
+          <rect x="30" y="32" width="50" height="80" rx="3" fill="none" stroke="#FAE08A" stroke-width="1.2" opacity=".45"/>
+          <!-- base -->
+          <rect x="26" y="112" width="58" height="9" rx="2" fill="#A87A08" stroke="#FAE08A" stroke-width=".8"/>
+          <rect x="32" y="121" width="46" height="5" rx="1" fill="#B8900A" stroke="#FAE08A" stroke-width=".6"/>
+          <!-- raios -->
+          <g opacity=".22" filter="url(#gf)">
+            <line x1="55" y1="72" x2="12" y2="45" stroke="#FFD060" stroke-width="1.4"><animate attributeName="opacity" values=".15;.4;.15" dur="2s" repeatCount="indefinite"/></line>
+            <line x1="55" y1="72" x2="98" y2="45" stroke="#FFD060" stroke-width="1.4"><animate attributeName="opacity" values=".15;.4;.15" dur="2.4s" repeatCount="indefinite"/></line>
+            <line x1="55" y1="78" x2="5"  y2="80" stroke="#FFD060" stroke-width="1"><animate attributeName="opacity" values=".1;.3;.1" dur="1.9s" repeatCount="indefinite"/></line>
+            <line x1="55" y1="78" x2="105" y2="80" stroke="#FFD060" stroke-width="1"><animate attributeName="opacity" values=".1;.3;.1" dur="2.2s" repeatCount="indefinite"/></line>
+            <line x1="55" y1="84" x2="28" y2="135" stroke="#FFD060" stroke-width="1"><animate attributeName="opacity" values=".12;.35;.12" dur="2.6s" repeatCount="indefinite"/></line>
+            <line x1="55" y1="84" x2="82" y2="135" stroke="#FFD060" stroke-width="1"><animate attributeName="opacity" values=".12;.35;.12" dur="2.3s" repeatCount="indefinite"/></line>
+          </g>
+          <!-- cajado à direita -->
+          <line x1="90" y1="14" x2="86" y2="168" stroke="#7A5010" stroke-width="5" stroke-linecap="round"/>
+          <line x1="90" y1="14" x2="86" y2="168" stroke="#C49A10" stroke-width="1.6" opacity=".4" stroke-linecap="round"/>
+          <circle cx="90" cy="14" r="5" fill="#C49A10" stroke="#FAE08A" stroke-width=".8"/>
+          <circle cx="90" cy="14" r="2" fill="#FFE880"/>
+        </svg>
+
+        <!-- EREMITA SVG -->
+        <svg class="eremita-svg" viewBox="0 0 140 260" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="eg" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%"  stop-color="#F5C842" stop-opacity=".82"/>
+              <stop offset="50%" stop-color="#E8924A" stop-opacity=".65"/>
+              <stop offset="100%" stop-color="#D4547A" stop-opacity=".45"/>
+            </linearGradient>
+            <filter id="fg"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <!-- manto -->
+          <path d="M70 46 Q52 62 40 96 Q28 134 30 176 Q32 208 38 238 Q52 248 70 250 Q88 248 102 238 Q108 208 110 176 Q112 134 100 96 Q88 62 70 46 Z" fill="url(#eg)" opacity=".52" filter="url(#fg)"/>
+          <!-- capuz -->
+          <ellipse cx="70" cy="40" rx="24" ry="26" fill="url(#eg)" opacity=".62"/>
+          <path d="M48 36 Q40 22 44 12 Q56 -2 70 2 Q84 -2 96 12 Q100 22 92 36" fill="url(#eg)" opacity=".55"/>
+          <!-- rosto -->
+          <ellipse cx="70" cy="44" rx="14" ry="16" fill="rgba(245,200,66,.32)"/>
+          <!-- barba -->
+          <path d="M60 54 Q66 63 70 65 Q74 63 80 54" stroke="rgba(245,200,66,.38)" stroke-width="1" fill="none"/>
+          <path d="M61 57 Q66 70 70 72 Q74 70 79 57" stroke="rgba(245,200,66,.25)" stroke-width=".8" fill="none"/>
+          <!-- braço esquerdo + lanterna pequena -->
+          <line x1="52" y1="80" x2="34" y2="112" stroke="url(#eg)" stroke-width="7" stroke-linecap="round" opacity=".58"/>
+          <rect x="22" y="110" width="18" height="22" rx="2" fill="rgba(255,208,96,.22)" stroke="rgba(245,200,66,.55)" stroke-width="1"/>
+          <ellipse cx="31" cy="122" rx="5" ry="7" fill="rgba(255,220,80,.55)" filter="url(#fg)">
+            <animate attributeName="opacity" values=".45;.9;.45" dur="2.1s" repeatCount="indefinite"/>
+          </ellipse>
+          <!-- cajado direito -->
+          <line x1="98" y1="40" x2="95" y2="248" stroke="rgba(196,154,16,.62)" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="98" cy="38" r="4" fill="rgba(245,200,66,.65)"/>
+          <!-- pés -->
+          <ellipse cx="56" cy="242" rx="12" ry="4" fill="rgba(245,200,66,.38)"/>
+          <ellipse cx="84" cy="245" rx="12" ry="4" fill="rgba(245,200,66,.32)"/>
+          <!-- dobras do manto -->
+          <path d="M55 104 Q52 140 50 178" stroke="rgba(245,200,66,.13)" stroke-width="1.1" fill="none"/>
+          <path d="M85 104 Q88 140 90 178" stroke="rgba(245,200,66,.13)" stroke-width="1.1" fill="none"/>
+          <path d="M63 118 Q61 155 60 192" stroke="rgba(245,200,66,.08)" stroke-width=".7" fill="none"/>
+          <!-- estrela de luz saindo da lanterna -->
+          <text x="14" y="108" font-size="10" fill="rgba(255,220,80,.75)" text-anchor="middle">✦</text>
+          <text x="6"  y="122" font-size="7"  fill="rgba(255,220,80,.45)" text-anchor="middle">✧</text>
+          <text x="20" y="128" font-size="6"  fill="rgba(255,220,80,.35)" text-anchor="middle">·</text>
+        </svg>
+        <div class="lantern-halo"></div>
+      </div>
+    </div>
+
+    <!-- FAIXA DO NOME (base visual da carta) -->
+    <div class="name-band rv">
+      <div class="name-band-text">Vitória Gabriele · Taróloga</div>
+      <span class="name-band-sub">A verdade que procuras já sabe o teu nome.</span>
+    </div>
+
+    <!-- ═ SEP ═ -->
+    <div class="h-sep rv"><div class="line"></div><div class="gem">✦ Sobre ✦</div><div class="line"></div></div>
+
+    <!-- SOBRE -->
+    <div class="inner-sec center rv" id="sobre">
+      <span class="sec-eye">· Quem sou eu ·</span>
+      <h2 class="sec-title">A Luz que Guia na Escuridão</h2>
+      <p class="sec-body" style="max-width:600px;margin:0 auto;">
+        Sou Vitória Gabriele, taróloga com uma conexão profunda com os arcanos e com a sabedoria que existe em cada jornada humana. Como O Eremita que caminha com sua lanterna na escuridão — meu trabalho é iluminar o que está oculto dentro de você: padrões, bloqueios, possibilidades e verdades que só o silêncio revela.
+        <br><br>
+        Cada tiragem é um encontro entre as cartas e a sua história real. Não ofereço respostas genéricas — ofereço presença, escuta e clareza.
+      </p>
+    </div>
+
+    <!-- ═ SEP ═ -->
+    <div class="h-sep rv"><div class="line"></div><div class="gem">✦ Serviços ✦</div><div class="line"></div></div>
+
+    <!-- O QUE FAÇO -->
+    <div class="inner-sec center rv">
+      <span class="sec-eye">· O que ofereço ·</span>
+      <h2 class="sec-title">Leitura. Silêncio. Verdade.</h2>
+      <div class="what-grid">
+        <div class="wc rv"><div class="wc-topline"></div><span class="wc-icon">🕯</span><div class="wc-title">Leitura de Tarot</div><p class="wc-body">Cada arcano é interpretado com atenção e cuidado, conectando os símbolos das cartas à sua situação real.</p></div>
+        <div class="wc rv"><div class="wc-topline"></div><span class="wc-icon">🌙</span><div class="wc-title">Perguntas Pontuais</div><p class="wc-body">Dúvidas sobre amor, carreira ou decisões? As cartas trazem perspectiva para o que pesa no coração.</p></div>
+        <div class="wc rv"><div class="wc-topline"></div><span class="wc-icon">☀</span><div class="wc-title">Tiragem Semanal & Mensal</div><p class="wc-body">Acompanhe seus ciclos, oportunidades e bloqueios ao longo do tempo com tiragens regulares.</p></div>
+        <div class="wc rv"><div class="wc-topline"></div><span class="wc-icon">⚡</span><div class="wc-title">Consultas Urgentes</div><p class="wc-body">Quando a resposta não pode esperar — atendimento prioritário para quem precisa de clareza agora.</p></div>
+      </div>
+    </div>
+
+    <!-- ═ SEP ═ -->
+    <div class="h-sep rv"><div class="line"></div><div class="gem">✦ A Carta ✦</div><div class="line"></div></div>
+
+    <!-- CARTA FLIP -->
+    <div class="flip-wrap rv">
+      <span class="sec-eye">· Toque para revelar ·</span>
+      <h2 class="sec-title">A Carta Regente</h2>
+      <div class="tarot-3d" id="tarotCard" role="button" tabindex="0" aria-label="Virar carta">
+        <div class="tarot-inner">
+          <div class="tf">
+            <div class="tf-border"></div>
+            <div class="tf-top">IX</div>
+            <div class="tf-illo">🕯</div>
+            <div class="tf-name">O Eremita</div>
+            <div class="tf-sub">The Hermit</div>
+          </div>
+          <div class="tb">
+            <span class="ts">✦</span>
+            <p>A verdade que você procura<br>já conhece o seu nome.<br><br>O Eremita convida ao silêncio — e no silêncio, a luz interior brilha.</p>
+            <span class="ts">✦</span>
+          </div>
+        </div>
+      </div>
+      <p class="flip-hint">· Clique ou toque para revelar ·</p>
+    </div>
+
+    <!-- ═ SEP ═ -->
+    <div class="h-sep rv"><div class="line"></div><div class="gem">✦ Como Funciona ✦</div><div class="line"></div></div>
+
+    <!-- COMO FUNCIONA -->
+    <div class="inner-sec rv" id="como">
+      <div style="text-align:center;">
+        <span class="sec-eye">· O Ritual ·</span>
+        <h2 class="sec-title">Como Funciona</h2>
+      </div>
+      <div class="steps" style="max-width:640px;margin:28px auto 0;">
+        <div class="step rv">
+          <div class="step-bub">📲</div>
+          <div>
+            <h3>Entre em Contato pelo Instagram</h3>
+            <p>Mande uma mensagem direta para <strong style="color:var(--sun-lt);">@g.gabbsilv</strong> no Instagram com sua pergunta ou o tipo de consulta desejado. É por lá que tudo começa.</p>
+          </div>
+        </div>
+        <div class="step rv">
+          <div class="step-bub">🌙</div>
+          <div>
+            <h3>Escolha o Serviço</h3>
+            <p>Selecione entre perguntas pontuais, tiragem semanal, mensal ou urgente — conforme sua necessidade.</p>
+          </div>
+        </div>
+        <div class="step rv">
+          <div class="step-bub">✦</div>
+          <div>
+            <h3>A Tiragem Acontece</h3>
+            <p>As cartas são consultadas com intenção, silêncio e profundidade. Cada arcano é lido para a sua situação específica.</p>
+          </div>
+        </div>
+        <div class="step rv">
+          <div class="step-bub">🕯</div>
+          <div>
+            <h3>Receba sua Leitura</h3>
+            <p>A resposta chega em até 1 a 2 dias pelo Instagram, com clareza, cuidado e respeito pelo seu momento.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═ SEP ═ -->
+    <div class="h-sep rv"><div class="line"></div><div class="gem">✦ Valores ✦</div><div class="line"></div></div>
+
+    <!-- PREÇOS -->
+    <div class="inner-sec center rv" id="servicos">
+      <span class="sec-eye">· Consultas ·</span>
+      <h2 class="sec-title">Serviços & Valores</h2>
+      <div class="price-grid">
+        <div class="pc rv"><div class="pc-topline"></div><span class="pc-icon">🌟</span><div class="pc-name">1 Pergunta</div><p class="pc-desc">Uma questão objetiva, uma resposta direta das cartas.</p><div class="pc-price"><sup>R$</sup>10</div></div>
+        <div class="pc rv"><div class="pc-topline"></div><span class="pc-icon">✨</span><div class="pc-name">2 Perguntas</div><p class="pc-desc">Duas perspectivas em uma única sessão de leitura.</p><div class="pc-price"><sup>R$</sup>15</div></div>
+        <div class="pc feat rv"><div class="pc-topline"></div><span class="pc-badge">Popular</span><span class="pc-icon">💫</span><div class="pc-name">3 Perguntas</div><p class="pc-desc">Três questões para uma visão mais completa do seu momento.</p><div class="pc-price"><sup>R$</sup>20</div></div>
+        <div class="pc rv"><div class="pc-topline"></div><span class="pc-icon">☀</span><div class="pc-name">Tiragem Semanal</div><p class="pc-desc">A energia e os desafios da semana em uma tiragem completa.</p><div class="pc-price"><sup>R$</sup>25</div></div>
+        <div class="pc rv"><div class="pc-topline"></div><span class="pc-icon">🌙</span><div class="pc-name">Tiragem Mensal</div><p class="pc-desc">Panorama do mês — ciclos, oportunidades e bloqueios.</p><div class="pc-price"><sup>R$</sup>30</div></div>
+        <div class="pc rv"><div class="pc-topline"></div><span class="pc-icon">⚡</span><div class="pc-name">Perguntas Urgentes</div><p class="pc-desc">Prioridade e agilidade quando você precisa de clareza agora.</p><div class="pc-price"><sup>R$</sup>35</div></div>
+      </div>
+    </div>
+
+    <!-- ═ SEP ═ -->
+    <div class="h-sep-double rv">
+      <div class="pair"><div class="line"></div><div class="ctr"></div><div class="line"></div></div>
+      <div class="pair" style="margin-top:5px;"><div class="line"></div><div class="ctr" style="width:40px;"></div><div class="line"></div></div>
+    </div>
+
+    <!-- RODAPÉ DA CARTA — CTA -->
+    <div class="card-foot rv" id="consulta">
+      <span class="foot-icon">🕯</span>
+      <h2 class="foot-title">A Lanterna está Acesa para Você</h2>
+      <p class="foot-lead">O silêncio das cartas guarda as respostas que você procura.</p>
+      <span class="foot-insta-cta">· Para agendar sua consulta, envie uma mensagem direta no Instagram ·</span>
+
+      <div class="social-row" id="redes">
+        <a href="https://www.instagram.com/g.gabbsilv?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener" class="btn-ig">
+          <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+          Falar no Instagram
+        </a>
+        <a href="https://www.tiktok.com/@vickdiaryy?_r=1&_t=ZS-97f2Ng4m3uq" target="_blank" rel="noopener" class="btn-tt">
+          <svg viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.19 8.19 0 004.79 1.52V6.76a4.85 4.85 0 01-1.02-.07z"/></svg>
+          TikTok
+        </a>
+      </div>
+      <p class="foot-note">Tempo médio de resposta · 1 a 2 dias · © 2025 Vitória Gabriele</p>
+    </div>
+
+  </div><!-- /card-content -->
+</div><!-- /card-shell -->
+</div><!-- /card-universe -->
+
+<script>
+/* CANVAS — estrelas flutuantes */
+(function(){
+  const c=document.getElementById('canvas-bg');
+  const ctx=c.getContext('2d');
+  let W,H,pts=[];
+  const COLS=['#F5C842','#E8924A','#D4547A','#F0A0C0','#FAE08A','#FFD060'];
+  function resize(){W=c.width=innerWidth;H=c.height=innerHeight;}
+  function init(){
+    pts=[];
+    const n=Math.floor(W*H/3800);
+    for(let i=0;i<n;i++) pts.push({
+      x:Math.random()*W,y:Math.random()*H,
+      r:Math.random()*1.5+.2,
+      col:COLS[~~(Math.random()*COLS.length)],
+      a:Math.random()*.6+.15,
+      tw:Math.random()*.02+.005,
+      off:Math.random()*Math.PI*2,
+      px:Math.random()*.04-.02,py:Math.random()*.04-.02,
+    });
+  }
+  let mx=0,my=0;
+  document.addEventListener('mousemove',e=>{mx=(e.clientX/W-.5)*50;my=(e.clientY/H-.5)*50;});
+  let t=0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);t+=.016;
+    pts.forEach(s=>{
+      const a=s.a*(0.5+0.5*Math.sin(t*s.tw*60+s.off));
+      const x=s.x+mx*s.px*16,y=s.y+my*s.py*16;
+      ctx.beginPath();ctx.arc(x,y,s.r,0,Math.PI*2);
+      ctx.fillStyle=s.col;ctx.globalAlpha=a;ctx.fill();
+      if(s.r>1.1){
+        ctx.globalAlpha=a*.38;ctx.strokeStyle=s.col;ctx.lineWidth=.5;
+        ctx.beginPath();ctx.moveTo(x-s.r*2.5,y);ctx.lineTo(x+s.r*2.5,y);
+        ctx.moveTo(x,y-s.r*2.5);ctx.lineTo(x,y+s.r*2.5);ctx.stroke();
+      }
+    });
+    ctx.globalAlpha=1;requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',()=>{resize();init();});
+  resize();init();draw();
+})();
+
+/* CURSOR */
+(function(){
+  const h=document.getElementById('cur-halo');
+  const d=document.getElementById('cur-dot');
+  if(!h||!d)return;
+  let x=-400,y=-400;
+  document.addEventListener('mousemove',e=>{x=e.clientX;y=e.clientY;});
+  function move(){
+    h.style.left=x+'px';h.style.top=y+'px';
+    d.style.left=x+'px';d.style.top=y+'px';
+    requestAnimationFrame(move);
+  }
+  move();
+  document.addEventListener('mouseleave',()=>{h.style.opacity=0;d.style.opacity=0;});
+  document.addEventListener('mouseenter',()=>{h.style.opacity=1;d.style.opacity=1;});
+  document.querySelectorAll('a,button,[role=button]').forEach(el=>{
+    el.addEventListener('mouseenter',()=>d.style.transform='translate(-50%,-50%) scale(2.5)');
+    el.addEventListener('mouseleave',()=>d.style.transform='translate(-50%,-50%) scale(1)');
+  });
+})();
+
+/* SPARKLES */
+document.addEventListener('click',function(e){
+  const em=['✦','★','✧','🕯','✨','💫','⭐'];
+  for(let i=0;i<5;i++){
+    const el=document.createElement('div');
+    el.className='spk';
+    el.textContent=em[~~(Math.random()*em.length)];
+    el.style.cssText=`left:${e.clientX+(Math.random()-.5)*50}px;top:${e.clientY+(Math.random()-.5)*50}px;color:${['#F5C842','#E8924A','#D4547A','#FAE08A'][~~(Math.random()*4)]};font-size:${Math.random()*.8+.5}rem;animation-duration:${Math.random()*.5+.85}s;position:fixed;pointer-events:none;z-index:9998;`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1400);
+  }
+});
+
+/* CARTA FLIP */
+(function(){
+  const c=document.getElementById('tarotCard');
+  if(!c)return;
+  c.addEventListener('click',()=>c.classList.toggle('flipped'));
+  c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')c.classList.toggle('flipped');});
+})();
+
+/* SCROLL REVEAL */
+(function(){
+  const els=document.querySelectorAll('.rv');
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');obs.unobserve(e.target);}});
+  },{threshold:.08});
+  els.forEach(el=>obs.observe(el));
+})();
+
+/* SMOOTH SCROLL */
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
+    const t=document.querySelector(a.getAttribute('href'));
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'});}
+  });
+});
+</script>
+</body>
+</html>
