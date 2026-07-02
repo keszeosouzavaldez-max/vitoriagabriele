@@ -458,6 +458,27 @@ body{
   .card-top{padding:28px 14px 20px;}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;}}
+
+/* ── BOTÃO AGENDAMENTO ── */
+.btn-agendar{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:16px 48px;
+  font-family:'Cinzel',serif;font-size:.82rem;letter-spacing:.22em;text-transform:uppercase;
+  text-decoration:none;color:var(--bg);
+  background:linear-gradient(135deg,var(--sun-lt),var(--sun),var(--amber));
+  border-radius:2px;border:none;
+  box-shadow:0 4px 22px rgba(245,200,66,.4),inset 0 1px 0 rgba(255,255,255,.28);
+  position:relative;overflow:hidden;transition:transform .3s,box-shadow .3s;
+  animation:shimmer 7s ease-in-out infinite;
+}
+.btn-agendar::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent,rgba(255,255,255,.22),transparent);
+  transform:translateX(-100%);transition:transform .5s;
+}
+.btn-agendar:hover::before{transform:translateX(100%);}
+.btn-agendar:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,200,66,.6);}
+
 </style>
 </head>
 <body>
@@ -768,6 +789,16 @@ body{
         <div class="pc rv"><div class="pc-topline"></div><span class="pc-icon">☀</span><div class="pc-name">Tiragem Semanal</div><p class="pc-desc">A energia e os desafios da semana em uma tiragem completa.</p><div class="pc-price"><sup>R$</sup>25</div></div>
         <div class="pc rv"><div class="pc-topline"></div><span class="pc-icon">🌙</span><div class="pc-name">Tiragem Mensal</div><p class="pc-desc">Panorama do mês — ciclos, oportunidades e bloqueios.</p><div class="pc-price"><sup>R$</sup>30</div></div>
         <div class="pc rv"><div class="pc-topline"></div><span class="pc-icon">⚡</span><div class="pc-name">Perguntas Urgentes</div><p class="pc-desc">Prioridade e agilidade quando você precisa de clareza agora.</p><div class="pc-price"><sup>R$</sup>35</div></div>
+      </div>
+
+      <!-- BOTÃO AGENDAMENTO -->
+      <div class="rv" style="margin-top:36px;text-align:center;">
+        <p style="font-style:italic;font-size:.9rem;color:rgba(253,240,220,.52);margin-bottom:20px;letter-spacing:.04em;">
+          ✦ Pagamento via Pix no início da sessão &nbsp;·&nbsp; Confirmação pelo Instagram
+        </p>
+        <a href="agendamento.html" class="btn-agendar">
+          🕯&nbsp; Agendar Consulta
+        </a>
       </div>
     </div>
 
